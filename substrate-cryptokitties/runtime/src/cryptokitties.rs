@@ -14,8 +14,7 @@ pub struct Kitty<Hash, Balance> {
 }
 
 pub trait Trait: balances::Trait {
-    // ACTION: Define your `Event` type here
-    //      REMINDER: It needs these traits: `From<Event<Self>> + Into<<Self as system::Trait>::Event>`
+    type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
 }
 
 decl_event!(
@@ -24,7 +23,7 @@ decl_event!(
         <T as system::Trait>::AccountId,
         <T as system::Trait>::Hash
     {
-        // ACTION: Add a `Created` event which includes an `AccountId` and a `Hash`
+        Created(AccountId, Hash),
     }
 );
 
@@ -41,8 +40,7 @@ decl_storage! {
 decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 
-        // ACTION: Define your generic `deposit_event<T>()` function
-        //      REMINDER: You can use the default implementation provided by the `decl_module!` macro with `default`
+        fn deposit_event<T>() = default;
 
         fn create_kitty(origin, name: Vec<u8>) -> Result {
             let sender = ensure_signed(origin)?;
@@ -66,6 +64,8 @@ decl_module! {
             <OwnedKitty<T>>::insert(&sender, random_hash);
 
             <Nonce<T>>::mutate(|n| *n += 1);
+
+            Self::deposit_event(RawEvent::Created(sender, random_hash));
 
             Ok(())
         }
