@@ -36,7 +36,11 @@ decl_storage! {
         AllKittiesCount get(all_kitties_count): u64;
         AllKittiesIndex: map T::Hash => u64;
 
+        // ACTION: Rename this to `OwnedKittiesArray`/`kitty_of_owner_by_index`
+        //         Have the key be a tuple of (T::AccountId, u64)
         OwnedKitty get(kitty_of_owner): map T::AccountId => T::Hash;
+        // ACTION: Add a new storage item `OwnedKittiesCount` which is a `map` from `T::AccountId` to `u64`
+        // ACTION: Add a new storage item `OwnedKittiesIndex` which is a `map` from `T::Hash` to `u64`
 
         Nonce: u64;
     }
@@ -49,6 +53,9 @@ decl_module! {
 
         fn create_kitty(origin, name: Vec<u8>) -> Result {
             let sender = ensure_signed(origin)?;
+
+            // ACTION: Generate variables `owned_kitty_count` and `new_owned_kitty_count`
+            //         similar to `all_kitties_count` below
 
             let all_kitties_count = Self::all_kitties_count();
 
@@ -78,6 +85,7 @@ decl_module! {
             <AllKittiesCount<T>>::put(new_all_kitties_count);
             <AllKittiesIndex<T>>::insert(random_hash, all_kitties_count);
 
+            // ACTION: Update this to maintain the state of our new storage items
             <OwnedKitty<T>>::insert(&sender, random_hash);
 
             <Nonce<T>>::mutate(|n| *n += 1);
