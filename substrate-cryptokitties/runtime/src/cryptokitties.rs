@@ -24,6 +24,8 @@ decl_event!(
         <T as system::Trait>::Hash
     {
         Created(AccountId, Hash),
+        // ACTION: Create a `PriceSet` event here
+        //      HINT: Do you need a new type for this event? (yes)
     }
 );
 
@@ -66,6 +68,29 @@ decl_module! {
             Self::_mint(sender, random_hash, new_kitty)?;
             
             <Nonce<T>>::mutate(|n| *n += 1);
+
+            Ok(())
+        }
+
+        fn set_price(origin, kitty_id: T::Hash, new_price: T::Balance) -> Result {
+            let sender = ensure_signed(origin)?;
+
+            // ACTION: Check that the kitty with `kitty_id` exists
+
+            // ACTION: Check if owner exists for `kitty_id`
+            //      - If it does, check that `sender` is the `owner`
+            //      - If it doesn't, return an `Err()` that no `owner` exists
+
+            let mut kitty = Self::kitty(kitty_id);
+            
+            // ACTION: Set the new price for the kitty
+
+            // ACTION: Update the kitty in storage
+
+            // ACTION: Deposit a `PriceSet` event with relevant data
+            //      - owner
+            //      - kitty id
+            //      - the new price
 
             Ok(())
         }
