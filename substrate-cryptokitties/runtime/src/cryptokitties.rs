@@ -21,11 +21,11 @@ decl_event!(
     pub enum Event<T>
     where
         <T as system::Trait>::AccountId,
-        <T as system::Trait>::Hash
+        <T as system::Trait>::Hash,
+        <T as balances::Trait>::Balance
     {
         Created(AccountId, Hash),
-        // ACTION: Create a `PriceSet` event here
-        //      HINT: Do you need a new type for this event? (yes)
+        PriceSet(AccountId, Hash, Balance),
     }
 );
 
@@ -75,22 +75,20 @@ decl_module! {
         fn set_price(origin, kitty_id: T::Hash, new_price: T::Balance) -> Result {
             let sender = ensure_signed(origin)?;
 
-            // ACTION: Check that the kitty with `kitty_id` exists
+            ensure!(<Kitties<T>>::exists(kitty_id), "This cat does not exist");
 
-            // ACTION: Check if owner exists for `kitty_id`
-            //      - If it does, check that `sender` is the `owner`
-            //      - If it doesn't, return an `Err()` that no `owner` exists
+            let owner = match Self::owner_of(kitty_id) {
+                Some(c) => c,
+                None => return Err("No owner for this kitty"),
+            };
+            ensure!(owner == sender, "You do not own this cat");
 
             let mut kitty = Self::kitty(kitty_id);
-            
-            // ACTION: Set the new price for the kitty
+            kitty.price = new_price;
 
-            // ACTION: Update the kitty in storage
+            <Kitties<T>>::insert(kitty_id, kitty);
 
-            // ACTION: Deposit a `PriceSet` event with relevant data
-            //      - owner
-            //      - kitty id
-            //      - the new price
+            Self::deposit_event(RawEvent::PriceSet(sender, kitty_id, new_price));
 
             Ok(())
         }
