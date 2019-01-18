@@ -3,6 +3,7 @@ use srml_support::{StorageValue, StorageMap, dispatch::Result};
 use system::ensure_signed;
 use runtime_primitives::traits::{As, Hash, Zero};
 use rstd::prelude::*;
+use rstd::cmp;
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
 pub struct Kitty<Hash, Balance> {
@@ -136,6 +137,40 @@ decl_module! {
             <Kitties<T>>::insert(kitty_id, kitty);
 
             Self::deposit_event(RawEvent::Bought(sender, owner, kitty_id, kitty_price));
+
+            Ok(())
+        }
+
+        fn breed_cat(origin, name: Vec<u8>, kitty_id_1: T::Hash, kitty_id_2: T::Hash) -> Result{
+            let sender = ensure_signed(origin)?;
+
+            // ACTION: Check both kitty 1 and kitty 2 "exists"
+
+            // ACTION: Generate a `random_hash` using the <Nonce<T>>
+
+            let kitty_1 = Self::kitty(kitty_id_1);
+            let kitty_2 = Self::kitty(kitty_id_2);
+
+            // Our gene splicing algorithm, feel free to make it your own
+            let mut final_dna = kitty_1.dna;
+
+            for (i, (dna_2_element, r)) in kitty_2.dna.as_ref().iter().zip(random_hash.as_ref().iter()).enumerate() {
+                if r % 2 == 0 {
+                    final_dna.as_mut()[i] = *dna_2_element;
+                }
+            }
+
+            // ACTION: Create a `new_kitty` using: 
+            //      - `random_hash` as `id`
+            //      - `name` as `name`
+            //      - `final_dna` as `dna`
+            //      - 0 as `price`
+            //      - the max of the parent's `gen` + 1
+            //          - Hint: `rstd::cmp::max(1, 5) + 1` is `6`
+
+            // ACTION: `_mint()` your new kitty
+
+            // ACTION: Update the <Nonce<T>>
 
             Ok(())
         }
