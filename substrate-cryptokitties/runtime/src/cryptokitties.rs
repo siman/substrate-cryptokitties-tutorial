@@ -13,7 +13,20 @@ pub struct Kitty<Hash, Balance> {
     gen: u64,
 }
 
-pub trait Trait: balances::Trait {}
+pub trait Trait: balances::Trait {
+    // ACTION: Define your `Event` type here
+    //      REMINDER: It needs these traits: `From<Event<Self>> + Into<<Self as system::Trait>::Event>`
+}
+
+decl_event!(
+    pub enum Event<T>
+    where
+        <T as system::Trait>::AccountId,
+        <T as system::Trait>::Hash
+    {
+        // ACTION: Add a `Created` event which includes an `AccountId` and a `Hash`
+    }
+);
 
 decl_storage! {
     trait Store for Module<T: Trait> as KittyStorage {
@@ -27,6 +40,9 @@ decl_storage! {
 
 decl_module! {
     pub struct Module<T: Trait> for enum Call where origin: T::Origin {
+
+        // ACTION: Define your generic `deposit_event<T>()` function
+        //      REMINDER: You can use the default implementation provided by the `decl_module!` macro with `default`
 
         fn create_kitty(origin, name: Vec<u8>) -> Result {
             let sender = ensure_signed(origin)?;
