@@ -1,13 +1,11 @@
-// ACTION: Update StorageValue to StorageMap to support mappings
-use srml_support::{StorageValue, dispatch::Result};
+use srml_support::{StorageMap, dispatch::Result};
 use system::ensure_signed;
 
 pub trait Trait: balances::Trait {}
 
 decl_storage! {
     trait Store for Module<T: Trait> as KittyStorage {
-        // ACTION: Update this storage item to be a `map` from `T::AccountId` to `u64`
-        Value: u64;
+        Value: map T::AccountId => u64;
     }
 }
 
@@ -17,8 +15,7 @@ decl_module! {
         fn set_value(origin, value: u64) -> Result {
             let sender = ensure_signed(origin)?;
 
-            // ACTION: Update this to `insert()` the key/value pair (sender, value)
-            <Value<T>>::put(value);
+            <Value<T>>::insert(sender, value);
 
             Ok(())
         }
