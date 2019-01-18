@@ -1,7 +1,7 @@
 use parity_codec::Encode;
 use srml_support::{StorageValue, StorageMap, dispatch::Result};
 use system::ensure_signed;
-use runtime_primitives::traits::{As, Hash};
+use runtime_primitives::traits::{As, Hash, Zero};
 use rstd::prelude::*;
 
 #[derive(Encode, Decode, Default, Clone, PartialEq, Debug)]
@@ -27,7 +27,7 @@ decl_event!(
         Created(AccountId, Hash),
         PriceSet(AccountId, Hash, Balance),
         Transferred(AccountId, AccountId, Hash),
-        // ACTION: Create a `Bought` event here
+        Bought(AccountId, AccountId, Hash, Balance),
     }
 );
 
@@ -112,30 +112,30 @@ decl_module! {
         fn buy_cat(origin, kitty_id: T::Hash, max_price: T::Balance) -> Result {
             let sender = ensure_signed(origin)?;
 
-            // ACTION: Check the kitty `exists()`
+            ensure!(<Kitties<T>>::exists(kitty_id), "This cat does not exist");
 
-            // ACTION: Get the `owner` of the kitty if it exists, otherwise return an `Err()`
-            // ACTION: Check that the `sender` is not the `owner`
+            let owner = match Self::owner_of(kitty_id) {
+                Some(o) => o,
+                None => return Err("No owner for this kitty"),
+            };
+            ensure!(owner != sender, "You can't buy your own cat");
 
             let mut kitty = Self::kitty(kitty_id);
 
-            // ACTION: Get the `kitty_price` and check that it is not zero
-            //      HINT:  `runtime_primitives::traits::Zero` allows you to call `kitty_price.is_zero()` which returns a bool
+            let kitty_price = kitty.price;
+            ensure!(!kitty_price.is_zero(), "The cat you want to buy is not for sale");
+            ensure!(kitty_price <= max_price, "The cat you want to buy costs more than your max price");
 
-            // ACTION: Check `kitty_price` is less than or equal to max_price
+            // TODO: This payment logic needs to be updated
+            <balances::Module<T>>::decrease_free_balance(&sender, kitty_price)?;
+            <balances::Module<T>>::increase_free_balance_creating(&owner, kitty_price);
 
-            // ACTION: "Try" to `decrease_free_balance()` of the sender
-            // ACTION: `increase_free_balance()` of the owner
+            Self::_transfer_from(owner.clone(), sender.clone(), kitty_id)?;
 
-            // ACTION: Transfer the kitty
+            kitty.price = <T::Balance as As<u64>>::sa(0);
+            <Kitties<T>>::insert(kitty_id, kitty);
 
-            // ACTION: Reset kitty price back to zero, and update the storage
-
-            // ACTION: Create an event for the cat being bought with relevant details
-            //      - new owner
-            //      - old owner
-            //      - the kitty id
-            //      - the price sold for
+            Self::deposit_event(RawEvent::Bought(sender, owner, kitty_id, kitty_price));
 
             Ok(())
         }
