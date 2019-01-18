@@ -36,12 +36,10 @@ decl_storage! {
         AllKittiesCount get(all_kitties_count): u64;
         AllKittiesIndex: map T::Hash => u64;
 
-        // ACTION: Rename this to `OwnedKittiesArray`/`kitty_of_owner_by_index`
-        //         Have the key be a tuple of (T::AccountId, u64)
-        OwnedKitty get(kitty_of_owner): map T::AccountId => T::Hash;
-        // ACTION: Add a new storage item `OwnedKittiesCount` which is a `map` from `T::AccountId` to `u64`
-        // ACTION: Add a new storage item `OwnedKittiesIndex` which is a `map` from `T::Hash` to `u64`
-
+        OwnedKittiesArray get(kitty_of_owner_by_index): map (T::AccountId, u64) => T::Hash;
+        OwnedKittiesCount get(owned_kitty_count): map T::AccountId => u64;
+        OwnedKittiesIndex: map T::Hash => u64;
+        
         Nonce: u64;
     }
 }
@@ -54,8 +52,12 @@ decl_module! {
         fn create_kitty(origin, name: Vec<u8>) -> Result {
             let sender = ensure_signed(origin)?;
 
-            // ACTION: Generate variables `owned_kitty_count` and `new_owned_kitty_count`
-            //         similar to `all_kitties_count` below
+            let owned_kitty_count = Self::owned_kitty_count(&sender);
+
+            let new_owned_kitty_count = match owned_kitty_count.checked_add(1) {
+                Some(c) => c,
+                None => return Err("Overflow adding a new kitty to account balance"),
+            };
 
             let all_kitties_count = Self::all_kitties_count();
 
@@ -85,9 +87,10 @@ decl_module! {
             <AllKittiesCount<T>>::put(new_all_kitties_count);
             <AllKittiesIndex<T>>::insert(random_hash, all_kitties_count);
 
-            // ACTION: Update this to maintain the state of our new storage items
-            <OwnedKitty<T>>::insert(&sender, random_hash);
-
+            <OwnedKittiesArray<T>>::insert((sender.clone(), owned_kitty_count), random_hash);
+            <OwnedKittiesCount<T>>::insert(&sender, new_owned_kitty_count);
+            <OwnedKittiesIndex<T>>::insert(random_hash, owned_kitty_count);
+            
             <Nonce<T>>::mutate(|n| *n += 1);
 
             Self::deposit_event(RawEvent::Created(sender, random_hash));
