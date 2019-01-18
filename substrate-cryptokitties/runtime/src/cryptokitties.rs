@@ -95,7 +95,7 @@ decl_module! {
 
             Ok(())
         }
-
+        
         fn transfer(origin, to: T::AccountId, kitty_id: T::Hash) -> Result {
             let sender = ensure_signed(origin)?;
 
@@ -144,14 +144,16 @@ decl_module! {
         fn breed_cat(origin, name: Vec<u8>, kitty_id_1: T::Hash, kitty_id_2: T::Hash) -> Result{
             let sender = ensure_signed(origin)?;
 
-            // ACTION: Check both kitty 1 and kitty 2 "exists"
+            ensure!(<Kitties<T>>::exists(kitty_id_1), "This cat 1 does not exist");
+            ensure!(<Kitties<T>>::exists(kitty_id_2), "This cat 2 does not exist");
 
-            // ACTION: Generate a `random_hash` using the <Nonce<T>>
+            let nonce = <Nonce<T>>::get();
+            let random_hash = (<system::Module<T>>::random_seed(), &sender, nonce)
+                                .using_encoded(<T as system::Trait>::Hashing::hash);
 
             let kitty_1 = Self::kitty(kitty_id_1);
             let kitty_2 = Self::kitty(kitty_id_2);
 
-            // Our gene splicing algorithm, feel free to make it your own
             let mut final_dna = kitty_1.dna;
 
             for (i, (dna_2_element, r)) in kitty_2.dna.as_ref().iter().zip(random_hash.as_ref().iter()).enumerate() {
@@ -160,17 +162,17 @@ decl_module! {
                 }
             }
 
-            // ACTION: Create a `new_kitty` using: 
-            //      - `random_hash` as `id`
-            //      - `name` as `name`
-            //      - `final_dna` as `dna`
-            //      - 0 as `price`
-            //      - the max of the parent's `gen` + 1
-            //          - Hint: `rstd::cmp::max(1, 5) + 1` is `6`
+            let new_kitty = Kitty {
+                                id: random_hash,
+                                name: name,
+                                dna: final_dna,
+                                price: <T::Balance as As<u64>>::sa(0),
+                                gen: cmp::max(kitty_1.gen, kitty_2.gen) + 1,
+                            };
 
-            // ACTION: `_mint()` your new kitty
+            Self::_mint(sender, random_hash, new_kitty)?;
 
-            // ACTION: Update the <Nonce<T>>
+            <Nonce<T>>::mutate(|n| *n += 1);
 
             Ok(())
         }
